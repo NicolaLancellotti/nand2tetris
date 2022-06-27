@@ -8,13 +8,27 @@
  * Note: Jack compilers implement multiplication and division using OS method calls.
  */
 class Math {
-
+    static int n;
+    static Array twoToThe;
+    
     /** Initializes the library. */
     function void init() {
+        var int i;
+        let n = 16;
+        do Math._initTwoToThe();
+        return;
     }
 
     /** Returns the absolute value of x. */
     function int abs(int x) {
+        if (x < 0) {
+            if (x = twoToThe[n - 1]) {
+                do Sys.error(0);
+            }
+            return -x;
+        } else {
+            return x;
+        }
     }
 
     /** Returns the product of x and y. 
@@ -23,6 +37,17 @@ class Math {
      *  the Jack expressions x*y and multiply(x,y) return the same value.
      */
     function int multiply(int x, int y) {
+        var int sum, i, shiftedX;
+        let shiftedX = x;
+        let i = 0;
+        while (i < n) {
+            if (Math._bit(y, i)) {
+                let sum = sum + shiftedX;
+            }
+            let shiftedX = shiftedX + shiftedX;
+            let i = i + 1;
+        }
+        return sum;
     }
 
     /** Returns the integer part of x/y.
@@ -31,17 +56,77 @@ class Math {
      *  the Jack expressions x/y and divide(x,y) return the same value.
      */
     function int divide(int x, int y) {
+        var int q, result;
+        var bool signPositive;
+        let signPositive = (x > 0 & y > 0) | (x < 0 & y < 0);
+        let x = Math.abs(x);
+        let y = Math.abs(y);
+        if ((y > x) | (y < 0 /* check overflow */)) {
+            return 0;
+        }
+        let q = Math.divide(x, y + y);
+        if ((x - (2 * q * y)) < y) {
+            let result =  q + q;
+        } else {
+            let result =  q + q + 1;
+        }
+        if (signPositive) {
+            return result;
+        } else {
+            return -result;
+        }
     }
 
     /** Returns the integer part of the square root of x. */
     function int sqrt(int x) {
+        var int y, j, t1, t2;
+        if (x < 0) {
+            do Sys.error(0);
+        }
+        let j = (n / 2) - 1;
+        while (j > -1) {
+            let t1 = y + twoToThe[j];
+            let t2 = t1 * t1;
+            if (((t2 < x) | (t2 = x)) & (t2 > 0 /* check overflow */)) {
+                let y = t1;
+            }
+            let j = j - 1;
+        }
+        return y;
     }
 
     /** Returns the greater number. */
     function int max(int a, int b) {
+        if (a > b) {
+            return a;
+        } else {
+            return b;
+        }
     }
 
     /** Returns the smaller number. */
     function int min(int a, int b) {
+        if (a < b) {
+            return a;
+        } else {
+            return b;
+        }
+    }
+
+    function void _initTwoToThe() {
+        var int i;
+        let twoToThe = Array.new(n);
+        let twoToThe[0] = 1;
+        let i = 1;
+        while (i < n) {
+            let twoToThe[i] = twoToThe[i - 1] + twoToThe[i - 1];
+            let i = i + 1;
+        }
+        return;
+    }
+
+    // Returns true if the i-th _bit of x is 1, false otherwise
+    function boolean _bit(int x, int i) {
+        return x & twoToThe[i];
     }
 }

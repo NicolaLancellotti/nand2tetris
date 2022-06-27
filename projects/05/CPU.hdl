@@ -39,5 +39,50 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // instruction[15]
+    // 0 -> A-instruction
+    // 1 -> C-instruction
+
+    // ____________________________________________
+    // ALU LHS
+    // instruction[4] = 1 -> dest contains D
+    And(a=instruction[15], b=instruction[4], out=loadD);
+    DRegister(in=ALUOutput, load=loadD, out=lhs);
+
+    // ____________________________________________
+    // ALU RHS
+    Mux16(a=instruction, b=ALUOutput, sel=instruction[15], out=aIn);
+    Not(in=instruction[15], out=isAInstruction);
+    // instruction[5] = 1 -> dest contains A
+    Or(a=isAInstruction, b=instruction[5], out=loadA);
+    ARegister(in=aIn, load=loadA, out=aValue, out[0..14]=addressM);
+
+    // instruction[12] 
+    // 0 -> rhs = A 
+    // 1 -> rhs = M
+    Mux16(a=aValue, b=inM, sel=instruction[12], out=rhs);
+
+    // ____________________________________________
+    // ALU
+    ALU(x=lhs, y=rhs, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUOutput, out=outM, zr=zr, ng=ng);
+
+    // ____________________________________________
+    // Write M
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // ____________________________________________
+    // PC
+    Not(in=ng, out=notNg);
+    Not(in=zr, out=nZr);
+    And(a=notNg, b=nZr, out=ps);
+
+    And(a=instruction[0], b=ps, out=w1);
+    And(a=instruction[1], b=zr, out=w2);
+    And(a=instruction[2], b=ng, out=w3);
+    Or(a=w1, b=w2, out=w);
+    Or(a=w3, b=w, out=loadPCifC);
+    And(a=instruction[15], b=loadPCifC, out=loadPC);
+
+    Not(in=loadPC, out=incPC);
+    PC(in=aValue, load=loadPC, inc=incPC, reset=reset, out[0..14]=pc);
 }

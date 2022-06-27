@@ -10,34 +10,214 @@
  * the screen is indexed (0,0).
  */
 class Screen {
-
+    static boolean isBlack;
+    static int n;
+    static Array twoToThe;
+    
     /** Initializes the Screen. */
     function void init() {
+        let isBlack = true;
+        let n = 16;
+        do Screen._initTwoToThe();
+        return;
     }
 
     /** Erases the entire screen. */
     function void clearScreen() {
+        var bool color;
+        let color = isBlack;
+        let isBlack = false;
+        do Screen.drawRectangle(0, 0, 511, 255);
+        let isBlack = color;
+        return;
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
+        let isBlack = b;
+        return;
     }
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
+        var int address, value, bit;
+        do Screen._check(x, y);
+        let address = 16384 + (32 * y) + (x / 16);
+        let value = Memory.peek(address);
+        let bit = x & 15; // x % 16
+        if (isBlack) {
+            let value = value | twoToThe[bit];
+        } else {
+            let value = value & ~twoToThe[bit];
+        }
+        do Memory.poke(address, value);
+        return;
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+        var int a, b, diff, dx, dy, goUp;
+        do Screen._check(x1, y1);
+        do Screen._check(x2, y2);
+
+        if (y1 = y2) {
+            // horizontal line
+            let a = Math.min(x1, x2);
+            let b = Math.max(x1, x2);
+            do Screen._drawHorizontalLine(a, b, y1);
+            return;
+        }
+        
+        if (x1 = x2) {
+            // vertical line
+            let a = Math.min(y1, y2);
+            let b = Math.max(y1, y2) + 1;
+            while (~(a = b)) {
+                do Screen.drawPixel(x1, a);
+                let a = a + 1;
+            }
+            return;
+        }
+
+        if (x1 > x2) {
+            let a = x1;
+            let x1 = x2;
+            let x2 = a;
+
+            let a = y1;
+            let y1 = y2;
+            let y2 = a;
+
+            let a = 0;
+        }
+
+        let dx = x2 - x1;
+        let dy = Math.abs(y2 - y1);
+        let goUp = y2 > y1; 
+        while (~((a > dx) | (b > dy))) { // ((a ≤ dx) and (b ≤ dy))
+            if (goUp) {
+                do Screen.drawPixel(x1 + a, y1 + b);
+            } else {
+                do Screen.drawPixel(x1 + a, y1 - b);
+            }
+            if (diff < 0) {  // go right
+                let a = a + 1; 
+                let diff = diff + dy;
+            } else { // go up or down
+                let b = b + 1;
+                let diff = diff - dx;
+            }
+        }
+        return;
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
+        do Screen._check(x1, y1);
+        do Screen._check(x2, y2);
+        if ((x1 > x2) | (y1 > y2)) {
+            do Sys.error(0);
+        }
+
+        while (y1 < (y2 + 1)) {
+            do Screen._drawHorizontalLine(x1, x2, y1);
+            let y1 = y1 + 1;
+        }
+        return;
     }
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+        var int dy, v1, v2;
+        do Screen._check(x, y);
+        if (r > 181) {
+            do Sys.error(0);
+            return;
+        }
+        let dy = -r;
+        while (~(dy = r)) {
+            let v1 = Math.sqrt((r * r) - (dy * dy));
+            let v2 = y + dy;
+            do Screen._drawHorizontalLine(x - v1, x + v1, v2);
+            let dy = dy + 1;
+        }
+        return;
+    }
+
+    function void _initTwoToThe() {
+        var int i;
+        let twoToThe = Array.new(n);
+        let twoToThe[0] = 1;
+        let i = 1;
+        while (i < n) {
+            let twoToThe[i] = twoToThe[i - 1] + twoToThe[i - 1];
+            let i = i + 1;
+        }
+        return;
+    }
+
+    function void _check(int x, int y) {
+        if ((x < 0) | (x > 511) | (y < 0) | (y > 255)) {
+            do Sys.error(0);
+        }
+        return;
+    }
+
+    function void _drawHorizontalLine(int x1, int x2, int y) {
+        var int address, endAddress, i, end, value;
+
+        let address = 16384 + (32 * y) + (x1 / 16);
+        let endAddress = 16384 + (32 * y) + (x2 / 16);
+
+        if (address = endAddress) {
+            let i = x1 & 15; // x1 % 16
+            let end = x2 & 15 + 1; // x2 % 16 + 1
+            let value = Memory.peek(address);
+            while (i < end) {
+                if (isBlack) {
+                    let value = value | twoToThe[i];
+                } else {
+                    let value = value & ~twoToThe[i];
+                }
+                let i = i + 1;
+            }
+            do Memory.poke(address, value);
+            return;
+        }
+
+        let i = x1 & 15; // x1 % 16
+        let end = n;
+        let value = Memory.peek(address);
+        while (i < end) {
+            if (isBlack) {
+                let value = value | twoToThe[i];
+            } else {
+                let value = value & ~twoToThe[i];
+            }
+            let i = i + 1;
+        }
+        do Memory.poke(address, value);
+
+        let address = address + 1;
+        while (address < endAddress) {
+            do Memory.poke(address, isBlack);
+            let address = address + 1;
+        }
+
+        let i = 0;
+        let end = x2 & 15 + 1; // x2 % 16 + 1
+        let value = Memory.peek(address);
+        while (i < end) {
+            if (isBlack) {
+                let value = value | twoToThe[i];
+            } else {
+                let value = value & ~twoToThe[i];
+            }
+            let i = i + 1;
+        }
+        do Memory.poke(address, value);
+        return;
     }
 }

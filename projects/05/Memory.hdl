@@ -22,10 +22,38 @@
  * Screen and Keyboard chip specifications given in the book.
  */
 
+
+ /*
+    RAM address 14 bit: 2^14 = 16384
+    0     = 0 00000000000000
+    16383 = 0 11111111111111
+ 
+    Screen address 13 bit: 2 ^ 13 = 8192
+    16383 + 1 = 16384    = 10 0000000000000
+    16383 + 8192 = 24575 = 10 1111111111111
+
+    Keyboard
+    24575 + 1 = 24576 = 11 0000000000000
+*/
+
 CHIP Memory {
     IN in[16], load, address[15];
     OUT out[16];
 
-    PARTS:
-    // Put your code here:
+    PARTS:       
+    Not(in=address[14] ,out=not14);
+    And(a=not14, b=load, out=loadRAM);
+    RAM16K(in=in, load=loadRAM, address=address[0..13], out=outRAM);
+
+    Not(in=address[13] ,out=not13);
+    And(a=address[14], b=not13, out=tmp);
+    And(a=tmp, b=load, out=loadScren);
+    Screen(in=in ,load=loadScren, address=address[0..12], out=outScreen);
+
+    Keyboard(out=outKeyboard);
+
+    // 00 | 01 -> RAM
+    // 10 -> Screen
+    // 11 -> Keyboard
+    Mux4Way16(a=outRAM, b=outRAM, c=outScreen, d=outKeyboard, sel=address[13..14], out=out);
 }

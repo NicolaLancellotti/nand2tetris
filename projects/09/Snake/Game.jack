@@ -1,0 +1,119 @@
+class Game {
+    field int wait;
+    field int seed;
+    
+    field int snakeCellSide;
+    field int rows, cols;
+    field int xLeft, xRight, yTop, yBottom;
+    field Snake snake;
+    field Coordinate item;
+    
+   constructor Game new() {
+        let wait = 100;
+        let seed = 10;
+        
+        let snakeCellSide = 10;
+        let rows = 256 / snakeCellSide;
+        let cols = 512 / snakeCellSide;
+        let yTop = ((256 - (snakeCellSide * rows)) / 2) - 1;
+        let yBottom = yTop + (snakeCellSide * rows) + 1;
+        let xLeft = ((512 - (snakeCellSide * cols)) / 2) - 1;
+        let xRight = xLeft + (snakeCellSide * cols) + 1;
+        let snake = Snake.new(rows, cols, xLeft + 1, yTop + 1, snakeCellSide);
+        let item = Coordinate.new(10, 5);
+        return this;
+   }
+
+    method void dispose() {
+        do snake.dispose();
+        do item.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void run() {
+        var int result;
+        var char key;
+        let result = 2;
+        
+        do drawEdge();
+        do snake.draw(true);
+        do drawItem(item);
+
+        while (~(result = 0)) {
+            while ((key = 0) & (~(result = 0))) {
+                let key = Keyboard.keyPressed();
+                let result = snake.move(item);
+                if (result = 1) {
+                    let item = makeNewItem();
+                    do drawItem(item);
+                }
+                do Sys.wait(wait);
+            }
+            if (~(result = 0)) {
+                if (key = 130) { // left arrow 
+                    do snake.setDirection(0); 
+                }
+                if (key = 131) { // up arrow
+                    do snake.setDirection(1); 
+                }
+                if (key = 132) { // right arrow
+                    do snake.setDirection(2); 
+                }
+                if (key = 133) { //  down arrow
+                    do snake.setDirection(3); 
+                }
+            }
+            
+            while ((~(key = 0)) & (~(result = 0))) {
+                let key = Keyboard.keyPressed();
+                let result = snake.move(item);
+                if (result = 1) {
+                    let item = makeNewItem();
+                    do drawItem(item);
+                }
+                do Sys.wait(wait);
+            }
+        }
+
+	    if (result = 0) {
+            do snake.flash();
+            do Screen.clearScreen();
+            do Output.moveCursor(10,27);
+	        do Output.printString("Game Over");
+	    }
+        
+        return;
+    }
+
+    method Coordinate makeNewItem() {
+        do item.set(random(cols), random(rows));
+        while (snake.contains(item)) {
+            do item.set(random(cols), random(rows));
+        }
+        return item;
+    }
+
+    method int random(int max) {
+        let seed = seed + 1;
+        return seed - (seed / max * max);
+    }
+
+    method void drawEdge() {
+        do Screen.setColor(true);
+        do Screen.drawLine(xLeft, yTop, xRight, yTop);       // top
+        do Screen.drawLine(xLeft, yBottom, xRight, yBottom); // bottom
+        do Screen.drawLine(xLeft, yTop, xLeft, yBottom);     // left
+        do Screen.drawLine(xRight, yTop, xRight, yBottom);   // right
+        return;
+    }
+
+    method void drawItem(Coordinate item) {
+        var int x, y;
+        let x = xLeft + (item.getX() * snakeCellSide);
+        let y = yTop + (item.getY() * snakeCellSide);
+        do Screen.setColor(true);
+        do Screen.drawCircle(x + (snakeCellSide / 2), y + (snakeCellSide / 2), snakeCellSide / 3);
+        return;
+    }
+}

@@ -1,0 +1,165 @@
+class Snake {
+    field int lastRowIndex, lastColIndex;
+    field int xLeftScreen, yTopScreen; 
+    field int cellSide;
+
+    //  0 -> left
+    //  1 -> up
+    //  2 -> right
+    //  3 -> down
+    field int direction;
+
+    field int maxLength;
+    field Array list;
+    field int length;
+    
+
+   constructor Snake new(int rows, int cols, int AxLeftScreen, int AyTopScreen, int Aside) {
+        let lastRowIndex = rows - 1;
+        let lastColIndex = cols - 1;
+        let xLeftScreen = AxLeftScreen;
+        let yTopScreen = AyTopScreen;
+        let cellSide = Aside;
+        let direction = 2;
+        
+        let maxLength = rows * cols;
+        let list = Array.new(maxLength);
+        let length = 2;
+        let list[0] = Coordinate.new(5, 5);
+        let list[1] = Coordinate.new(5, 6);
+        return this;
+   }
+
+    method void dispose() {
+        var Coordinate c;
+        var int i;
+        while (i < length) {
+            let c = list[i];
+            do c.dispose();
+            let i = i + 1;
+        }
+        do list.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method void setDirection(int Adirection) {
+        var int sum;
+        if (((direction = 0) & (Adirection = 2)) |
+            ((direction = 2) & (Adirection = 0)) |
+            ((direction = 1) & (Adirection = 3)) |
+            ((direction = 3) & (Adirection = 1))) {
+                return;
+        }
+        let direction = Adirection;
+        return;
+    }
+
+    // Result:
+    //  0 -> exit
+    //  1 -> eat
+    //  2 -> move
+    method boolean move(Coordinate item) {
+        var Coordinate head;
+        var int x, y, i;
+        
+        let head = list[length - 1];
+        let x = head.getX();
+        let y = head.getY();
+
+        if (direction = 0) {
+            let x = x - 1;
+        } 
+        if (direction = 1) {
+            let y = y - 1;
+        }
+        if (direction = 2) {
+            let x = x + 1;
+        }
+        if (direction = 3) {
+            let y = y + 1;
+        }
+
+        if ((x < 0) | (y < 0) | (x > lastColIndex) | (y > lastRowIndex)) {
+            return 0;
+        }
+
+        // Eat
+        if ((item.getX() = x) & (item.getY() = y)) {
+            if (length = maxLength) {
+                return 0;
+            } else {
+                let list[length] = Coordinate.new(x, y);
+                let length = length + 1;
+                do drawCell(list[length - 1], true);
+                return 1;
+            }
+        } 
+
+        // Move
+        // Note: it would be better with a circular queue
+        let head = list[0];       // The tail becomes the new head 
+        do drawCell(head, false); // Delete tail
+        let i = 0;
+        while ((i + 1) < length) {
+            let list[i] = list[i + 1];
+            let i = i + 1;
+        }
+        let length = length - 1;
+
+        do head.set(x, y);
+        if (contains(head)) {
+            return 0;
+        }
+        let list[length] = head;
+        let length = length + 1;
+
+        do drawCell(head, true);
+        return 2;
+    }
+
+    method boolean contains(Coordinate item) {
+        var Coordinate current;
+        var int i;
+        while (i < length) {
+            let current = list[i];
+            if (current.equalTo(item)) {
+                return true;
+            }
+            let i = i + 1;
+        }
+        return false;
+    }
+
+    method void draw(boolean color) {
+        var Coordinate c;
+        var int i;
+        while (i < length) {
+            let c = list[i];
+            do drawCell(c, color);
+            let i = i + 1;
+        }
+        return;
+    }
+
+    method void drawCell(Coordinate c, boolean color) {
+        var int x, y;
+        let x = xLeftScreen + (c.getX() * cellSide);
+        let y = yTopScreen + (c.getY() * cellSide);
+        do Screen.setColor(color);
+        do Screen.drawRectangle(x, y, x + cellSide - 1, y + cellSide - 1);
+        return;
+    }
+
+    method void flash() {
+        var int i;
+        while (i < 3) {
+            do draw(false);
+            do Sys.wait(200);
+            do draw(true);
+            do Sys.wait(200);
+            let i = i + 1;
+        }
+        return;
+    }
+}
